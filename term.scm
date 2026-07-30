@@ -46,7 +46,8 @@
                           pty-resize!
                           raw-virtual-terminal
                           vte/scroll-up
-                          vte/scroll-down))
+                          vte/scroll-down
+                          vte/iter-cell-reverse?))
 
 (require "steel/result")
 (require "helix/misc.scm")
@@ -116,23 +117,20 @@
     ; base-color
     [else (if fg? base-color-fg base-color)]))
 
-(define (cell-fg-bg->style base-style base-color-fg base-color-bg fg bg theme-base-color-fg)
-  (when base-color-bg
-    (set-style-bg! base-style
-                   (or (attribute->color (term/color-attribute-set! bg bg-attr)
-                                         bg-attr
-                                         base-color-bg
-                                         #f
-                                         theme-base-color-fg)
-                       Color/Black)))
-
-  (set-style-fg! base-style
-                 (or (attribute->color (term/color-attribute-set! fg fg-attr)
-                                       fg-attr
-                                       base-color-fg
-                                       #t
-                                       theme-base-color-fg)
-                     Color/White)))
+(define (cell-fg-bg->style base-style base-color-fg base-color-bg fg bg theme-base-color-fg reverse?)
+  (define bgc (or (attribute->color (term/color-attribute-set! bg bg-attr)
+                                    bg-attr base-color-bg #f theme-base-color-fg)
+                  Color/Black))
+  (define fgc (or (attribute->color (term/color-attribute-set! fg fg-attr)
+                                    fg-attr base-color-fg #t theme-base-color-fg)
+                  Color/White))
+  (if reverse?
+      (begin
+        (set-style-bg! base-style fgc)
+        (set-style-fg! base-style bgc))
+      (begin
+        (when base-color-bg (set-style-bg! base-style bgc))
+        (set-style-fg! base-style fgc))))
 
 (define (for-each func lst)
   (if (null? lst)
@@ -498,7 +496,8 @@
                                 color-cursor-bg
                                 cell-fg
                                 cell-bg
-                                theme-base-color-fg)
+                                theme-base-color-fg
+                                (vte/iter-cell-reverse? *vte*))
              (frame-set-string! frame
                                 (+ x-offset (vte/iter-x *vte*))
                                 (+ y-offset (vte/iter-y *vte*))
