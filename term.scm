@@ -290,7 +290,7 @@
   ;; Update the box to now show this
   (set-box! (Terminal-focused? term) #t)
 
-  (set-editor-clip-right! *default-terminal-cols*)
+  (set-editor-clip-right! 0)
 
   ;; Mark the terminal as active, only if it isn't active already.
   ;; We don't want to push this component again if it already is
@@ -343,29 +343,14 @@
 ;; Do as a percentage of the terminal area, rather
 ;; than a fixed size
 (define (alternative-calculate-area state rect)
-  (if (and terminal-area (equal? stashed-area rect))
-      terminal-area
-      (begin
-        (set! stashed-area rect)
-
-        ;; Just drop the width by 4, always use a quarter of the screen
-        (set! *default-terminal-cols* (round (* *terminal-fraction* (area-width rect))))
-
-        (set-editor-clip-right! *default-terminal-cols*)
-        (term-resize-impl (- (area-height rect) 3) (- *default-terminal-cols* 5)) ;; Shave one off
-        (set! terminal-area
-              (area (+ (area-x rect) (- (area-width rect) *default-terminal-cols*))
-                    (area-y rect)
-                    *default-terminal-cols*
-                    (- (area-height rect) 1)))
-        terminal-area)))
-
-; (define (alternative-calculate-block-area state rect)
-;   ;; Perhaps... use this?
-;   (area (unbox (Terminal-x-term state))
-;         (unbox (Terminal-y-term state))
-;         (unbox (Terminal-viewport-width state))
-;         (unbox (Terminal-viewport-height state))))
+  ;; Centered floating box sized to *terminal-fraction* of the screen.
+  ;; No editor clip: the component draws over the editor, so it floats.
+  (define w (max 20 (round (* *terminal-fraction* (area-width rect)))))
+  (define h (max 6 (round (* *terminal-fraction* (area-height rect)))))
+  (define x (+ (area-x rect) (round (/ (- (area-width rect) w) 2))))
+  (define y (+ (area-y rect) (round (/ (- (area-height rect) h) 2))))
+  (term-resize-from-term state (max 1 (- h 2)) (max 1 (- w 2)))
+  (area x y w h))
 
 ;; We don't need to run this on _every_ frame. Just when
 ;; something has actually changed.
@@ -1238,6 +1223,7 @@
               (set-TerminalRegistry-terminals! *terminal-registry* '())
               (set-TerminalRegistry-cursor! *terminal-registry* #f)
               (set! *command-terminal* #f)
+              (helix.redraw '())
               (when on-exit (enqueue-thread-local-callback on-exit))])))))
   (loop)
 

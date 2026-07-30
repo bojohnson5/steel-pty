@@ -668,12 +668,12 @@ fn create_native_pty_system(command: String) -> PtyProcess {
 
         loop {
             if let Ok(size) = reader.read(&mut read_buffer) {
-                if size != 0 {
-                    let r = async_sender.send(String::from_utf8_lossy(&read_buffer[..size]).into());
-
-                    if r.is_err() {
-                        break;
-                    }
+                if size == 0 {
+                    break;
+                }
+                let r = async_sender.send(String::from_utf8_lossy(&read_buffer[..size]).into());
+                if r.is_err() {
+                    break;
                 }
             } else {
                 break;
