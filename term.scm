@@ -1202,7 +1202,7 @@
               (Color/rgb 0 0 0) (Color/rgb 0 0 0) (box #f)
               (mutable-string) (vte/empty-cell) (vte/empty-cell)
               (box #f) (box #f)
-              terminal-render terminal-event-handler terminal-cursor-handler
+              terminal-render terminal-event-handler #f
               (box #f) (box #f)))
   (set! *command-terminal* term)
 

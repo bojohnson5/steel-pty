@@ -213,6 +213,7 @@ fn create_module() -> FFIModule {
             ),
             screen_iterator: ScreenCellIterator { x: 0, y: 0 },
             last_cell: None,
+            last_reverse: false,
             scroll_up_modifier: 0,
         })
         // Raw virtual terminal!
@@ -226,6 +227,7 @@ fn create_module() -> FFIModule {
             ),
             screen_iterator: ScreenCellIterator { x: 0, y: 0 },
             last_cell: None,
+            last_reverse: false,
             scroll_up_modifier: 0,
         })
         .register_fn("vte/advance-bytes", VirtualTerminal::advance_bytes)
@@ -417,6 +419,7 @@ fn create_module() -> FFIModule {
 
                         if let Some(cell) = last_cell {
                             // term.last_cell = last_cell.cloned();
+                            term.last_reverse = cell.attrs().reverse();
                             update_cell(cell, mut_str, bg, fg);
 
                             return true;
@@ -436,6 +439,7 @@ fn create_module() -> FFIModule {
 
                         if let Some(cell) = last_cell {
                             // term.last_cell = last_cell.cloned();
+                            term.last_reverse = cell.attrs().reverse();
                             update_cell(cell, mut_str, bg, fg);
 
                             return true;
@@ -471,7 +475,7 @@ fn create_module() -> FFIModule {
             }
         })
         .register_fn("vte/iter-cell-reverse?", |term: &VirtualTerminal| {
-            term.last_cell.as_ref().map(|c| c.attrs().reverse()).unwrap_or(false)
+            term.last_reverse
         })
         .register_fn("vte/empty-cell", || {
             TermColorAttribute(ColorAttribute::default())
@@ -762,6 +766,7 @@ struct VirtualTerminal {
     screen_iterator: ScreenCellIterator,
     scroll_up_modifier: i64,
     last_cell: Option<Cell>,
+    last_reverse: bool,
 }
 
 struct ScreenCellIterator {
