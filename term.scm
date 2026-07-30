@@ -1235,10 +1235,14 @@
              [else
               (set-editor-clip-right! 0)   ;; stop-terminal doesn't reset the clip
               (stop-terminal term)
+              (set-TerminalRegistry-terminal! *terminal-registry* '())
+              (set-TerminalRegistry-cursor! *terminal-registry* #f)
               (set! *command-terminal* #f)
               (when on-exit (enqueue-thread-local-callback on-exit))])))))
   (loop)
 
+  (set-TerminalRegistry-terminals! *terminal-registry* (list term))
+  (set-TerminalRegistry-cursor! *terminal-registry* 0)
   (show-term term)
   term)
 
@@ -1247,4 +1251,6 @@
   (when *command-terminal*
     (set-editor-clip-right! 0)
     (stop-terminal *command-terminal*)
+    (set-TerminalRegistry-terminal! *terminal-registry* '())
+    (set-TerminalRegistry-cursor! *terminal-registry* #f)
     (set! *command-terminal* #f)))
