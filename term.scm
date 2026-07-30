@@ -1197,3 +1197,54 @@
   (when *xplr*
     (stop-terminal *xplr*)
     (set! *xplr* #f)))
+
+;; Run a shell command in an embedded terminal; call `on-exit` (main thread)
+;; when the PTY closes. `exec`-ing a TUI means quitting it closes the PTY,
+;; which surfaces as a falsy read below (steel-pty returns #f only on close,
+;; never on idle — verified in async_try_read_line).
+(define *command-terminal* #f)
+
+(provide open-shell-command-in-terminal)
+(define (open-shell-command-in-terminal name shell-command on-exit)
+  (define *pty-process* (create-native-pty-system! *default-shell*))
+  (define *vte* (virtual-terminal *pty-process*))
+  (vte/resize *vte* *default-terminal-rows* *default-terminal-cols*)
+  (pty-resize! *pty-process* *default-terminal-rows* *default-terminal-cols*)
+
+  (define term
+    (Terminal name (position 0 0)
+              (box *default-terminal-cols*) (box *default-terminal-rows*)
+              (box #f) (box #f) *pty-process* *vte* (style)
+              (Color/rgb 0 0 0) (Color/rgb 0 0 0) (box #f)
+              (mutable-string) (vte/empty-cell) (vte/empty-cell)
+              (box #f) (box #f)
+              terminal-render terminal-event-handler terminal-cursor-handler
+              (box #f) (box #f)))
+  (set! *command-terminal* term)
+
+  (pty-process-send-command *pty-process* (string-append shell-command "\r"))
+
+  (define (loop)
+    (if (unbox (Terminal-kill-switch term))
+        (begin (set-editor-clip-right! 0) (pop-last-component! name))
+        (helix-await-callback
+         (async-try-read-line *pty-process*)
+         (lambda (line)
+           (cond
+             [line (vte/advance-bytes *vte* line) (loop)]
+             [else
+              (set-editor-clip-right! 0)   ;; stop-terminal doesn't reset the clip
+              (stop-terminal term)
+              (set! *command-terminal* #f)
+              (when on-exit (enqueue-thread-local-callback on-exit))])))))
+  (loop)
+
+  (show-term term)
+  term)
+
+(provide close-command-terminal)
+(define (close-command-terminal)
+  (when *command-terminal*
+    (set-editor-clip-right! 0)
+    (stop-terminal *command-terminal*)
+    (set! *command-terminal* #f)))
