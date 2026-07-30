@@ -195,6 +195,7 @@ fn create_module() -> FFIModule {
 
     module
         .register_fn("create-native-pty-system!", create_native_pty_system)
+        .register_fn("create-native-pty-system-with-cmd!", create_native_pty_system_with_cmd)
         .register_fn("kill-pty-process!", PtyProcess::kill)
         .register_fn("pty-process-send-command", PtyProcess::send_command)
         .register_fn(
@@ -641,6 +642,16 @@ struct TermColorAttribute(ColorAttribute);
 impl Custom for TermColorAttribute {}
 
 fn create_native_pty_system(command: String) -> PtyProcess {
+    spawn_in_pty(CommandBuilder::new(command))
+}
+
+fn create_native_pty_system_with_cmd(command: String, cwd: String) -> PtyProcess {
+    let mut cmd = CommandBuilder::new(command);
+    cmd.cwd(cwd);
+    spawn_in_pty(cmd)
+}
+
+fn spawn_in_pty(cmd: CommandBuilder) -> PtyProcess {
     let pty_system = NativePtySystem::default();
 
     let pair = pty_system
@@ -652,7 +663,6 @@ fn create_native_pty_system(command: String) -> PtyProcess {
         })
         .unwrap();
 
-    let cmd = CommandBuilder::new(command);
     let child = pair.slave.spawn_command(cmd).unwrap();
 
     // Read the output in another thread.
