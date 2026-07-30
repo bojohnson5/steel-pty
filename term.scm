@@ -9,7 +9,7 @@
 ;; See steel-pty for the definitions
 (#%require-dylib "libsteel_pty"
                  (only-in create-native-pty-system!
-                          create-native-pty-system-with-cmd!
+                          create-native-pty-system-with-cwd!
                           kill-pty-process!
                           pty-process-send-command
                           pty-process-send-command-char
