@@ -470,6 +470,9 @@ fn create_module() -> FFIModule {
                 false.into_ffi_val()
             }
         })
+        .register_fn("vte/iter-cell-reverse?", |term: &VirtualTerminal| {
+            term.last_cell.as_ref().map(|c| c.attrs().reverse()).unwrap_or(false)
+        })
         .register_fn("vte/empty-cell", || {
             TermColorAttribute(ColorAttribute::default())
         })
@@ -665,24 +668,31 @@ fn create_native_pty_system(command: String) -> PtyProcess {
         // Consume the output from the child
 
         let mut read_buffer = [0; 65536];
+        let mut carry: Vec<_> = Vec::new();
 
         loop {
-            if let Ok(size) = reader.read(&mut read_buffer) {
-                if size == 0 {
-                    break;
+            match reader.read(&mut read_buffer) {
+                Ok(0) => break,                       // EOF: child exited (fixes q/panic)
+                Ok(size) => {
+                    carry.extend_from_slice(&read_buffer[..size]);
+                    // Decode only the valid UTF-8 prefix; keep any split trailing bytes.
+                    let valid = match std::str::from_utf8(&carry) {
+                        Ok(_) => carry.len(),
+                        Err(e) => e.valid_up_to(),
+                    };
+                    if valid > 0 {
+                        let s = String::from_utf8_lossy(&carry[..valid]).into_owned();
+                        carry.drain(..valid);
+                        if async_sender.send(s.into()).is_err() {
+                            break;
+                        }
+                    }
                 }
-                let r = async_sender.send(String::from_utf8_lossy(&read_buffer[..size]).into());
-                if r.is_err() {
-                    break;
-                }
-            } else {
-                break;
+                Err(_) => break,
             }
-
             match cancellation_token_receiver.try_recv() {
-                Ok(_) => break,
+                Ok(_) | Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
                 Err(std::sync::mpsc::TryRecvError::Empty) => {}
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
             }
         }
     });
