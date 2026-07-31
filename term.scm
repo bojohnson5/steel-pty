@@ -123,10 +123,10 @@
 (define (cell-fg-bg->style base-style base-color-fg base-color-bg fg bg theme-base-color-fg reverse?)
   (define bgc (or (attribute->color (term/color-attribute-set! bg bg-attr)
                                     bg-attr base-color-bg #f theme-base-color-fg)
-                  Color/Black))
+                  Color/Reset))
   (define fgc (or (attribute->color (term/color-attribute-set! fg fg-attr)
                                     fg-attr base-color-fg #t theme-base-color-fg)
-                  Color/White))
+                  Color/Reset))
   (if reverse?
       (begin
         (set-style-bg! base-style fgc)
