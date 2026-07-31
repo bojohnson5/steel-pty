@@ -199,6 +199,10 @@ fn create_module() -> FFIModule {
             "create-native-pty-system-with-cwd!",
             create_native_pty_system_with_cwd,
         )
+        .register_fn(
+            "create-native-pty-system-with-args-and-cwd!",
+            create_native_pty_system_with_args_and_cwd,
+        )
         .register_fn("kill-pty-process!", PtyProcess::kill)
         .register_fn("pty-process-send-command", PtyProcess::send_command)
         .register_fn(
@@ -647,6 +651,19 @@ impl Custom for TermColorAttribute {}
 
 fn create_native_pty_system(command: String) -> PtyProcess {
     spawn_in_pty(CommandBuilder::new(command))
+}
+
+fn create_native_pty_system_with_args_and_cwd(
+    command: String,
+    args: Vec<String>,
+    cwd: String,
+) -> PtyProcess {
+    let mut cmd = CommandBuilder::new(command);
+    for a in args {
+        cmd.arg(a);
+    }
+    cmd.cwd(cwd);
+    spawn_in_pty(cmd)
 }
 
 fn create_native_pty_system_with_cwd(command: String, cwd: String) -> PtyProcess {

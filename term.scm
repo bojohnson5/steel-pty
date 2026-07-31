@@ -10,6 +10,7 @@
 (#%require-dylib "libsteel_pty"
                  (only-in create-native-pty-system!
                           create-native-pty-system-with-cwd!
+                          create-native-pty-system-with-args-and-cwd!
                           kill-pty-process!
                           pty-process-send-command
                           pty-process-send-command-char
@@ -1256,6 +1257,46 @@
 (provide open-program-in-terminal)
 (define (open-program-in-terminal name program cwd on-exit)
   (define *pty-process* (create-native-pty-system-with-cwd! program cwd))
+  (define *vte* (virtual-terminal *pty-process*))
+  (vte/resize *vte* *default-terminal-rows* *default-terminal-cols*)
+  (pty-resize! *pty-process* *default-terminal-rows* *default-terminal-cols*)
+
+  (define term
+    (Terminal name (position 0 0)
+              (box *default-terminal-cols*) (box *default-terminal-rows*)
+              (box #f) (box #f) *pty-process* *vte* (style)
+              (Color/rgb 0 0 0) (Color/rgb 0 0 0) (box #f)
+              (mutable-string) (vte/empty-cell) (vte/empty-cell)
+              (box #f) (box #f)
+              terminal-render terminal-event-handler terminal-cursor-handler
+              (box #f) (box #f)))
+  (set! *command-terminal* term)
+
+  (define (loop)
+    (if (unbox (Terminal-kill-switch term))
+        (begin (set-editor-clip-right! 0) (pop-last-component! name))
+        (helix-await-callback
+         (async-try-read-line *pty-process*)
+         (lambda (line)
+           (cond
+             [line (vte/advance-bytes *vte* line) (loop)]
+             [else
+              (set-editor-clip-right! 0)
+              (stop-terminal term)
+              (set-TerminalRegistry-terminals! *terminal-registry* '())
+              (set-TerminalRegistry-cursor! *terminal-registry* #f)
+              (set! *command-terminal* #f)
+              (when on-exit (enqueue-thread-local-callback on-exit))])))))
+  (loop)
+
+  (set-TerminalRegistry-terminals! *terminal-registry* (list term))
+  (set-TerminalRegistry-cursor! *terminal-registry* 0)
+  (show-term term)
+  term)
+
+(provide open-program-in-terminal/args)
+(define (open-program-in-terminal/args name program args cwd on-exit)
+  (define *pty-process* (create-native-pty-system-with-args-and-cwd! program args cwd))
   (define *vte* (virtual-terminal *pty-process*))
   (vte/resize *vte* *default-terminal-rows* *default-terminal-cols*)
   (pty-resize! *pty-process* *default-terminal-rows* *default-terminal-cols*)
