@@ -1275,7 +1275,6 @@
               (set-TerminalRegistry-terminals! *terminal-registry* '())
               (set-TerminalRegistry-cursor! *terminal-registry* #f)
               (set! *command-terminal* #f)
-              (helix.redraw '())
               (when on-exit (enqueue-thread-local-callback on-exit))])))))
   (loop)
 
