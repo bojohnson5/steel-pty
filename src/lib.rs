@@ -270,17 +270,17 @@ fn create_module() -> FFIModule {
             "term/color-attribute",
             |attribute: &TermColorAttribute| match attribute.0 {
                 ColorAttribute::TrueColorWithPaletteFallback(SrgbaTuple(r, g, b, a), _) => vec![
-                    (r as isize).into_ffi_val().unwrap(),
-                    (g as isize).into_ffi_val().unwrap(),
-                    (b as isize).into_ffi_val().unwrap(),
-                    (a as isize).into_ffi_val().unwrap(),
+                    ((r * 255.0).round() as isize).into_ffi_val().unwrap(),
+                    ((g * 255.0).round() as isize).into_ffi_val().unwrap(),
+                    ((b * 255.0).round() as isize).into_ffi_val().unwrap(),
+                    ((a * 255.0).round() as isize).into_ffi_val().unwrap(),
                 ]
                 .into_ffi_val(),
                 ColorAttribute::TrueColorWithDefaultFallback(SrgbaTuple(r, g, b, a)) => vec![
-                    (r as isize).into_ffi_val().unwrap(),
-                    (g as isize).into_ffi_val().unwrap(),
-                    (b as isize).into_ffi_val().unwrap(),
-                    (a as isize).into_ffi_val().unwrap(),
+                    ((r * 255.0).round() as isize).into_ffi_val().unwrap(),
+                    ((g * 255.0).round() as isize).into_ffi_val().unwrap(),
+                    ((b * 255.0).round() as isize).into_ffi_val().unwrap(),
+                    ((a * 255.0).round() as isize).into_ffi_val().unwrap(),
                 ]
                 .into_ffi_val(),
                 ColorAttribute::PaletteIndex(index) => (index as usize).into_ffi_val(),
@@ -294,18 +294,18 @@ fn create_module() -> FFIModule {
                     match attribute.0 {
                         ColorAttribute::TrueColorWithPaletteFallback(SrgbaTuple(r, g, b, a), _) => {
                             // Update in place.
-                            vec[0] = FFIValue::IntV(r as isize);
-                            vec[1] = FFIValue::IntV(g as isize);
-                            vec[2] = FFIValue::IntV(b as isize);
-                            vec[3] = FFIValue::IntV(a as isize);
+                            vec[0] = FFIValue::IntV((r * 255.0).round() as isize);
+                            vec[1] = FFIValue::IntV((g * 255.0).round() as isize);
+                            vec[2] = FFIValue::IntV((b * 255.0).round() as isize);
+                            vec[3] = FFIValue::IntV((a * 255.0).round() as isize);
 
                             true.into_ffi_val()
                         }
                         ColorAttribute::TrueColorWithDefaultFallback(SrgbaTuple(r, g, b, a)) => {
-                            vec[0] = FFIValue::IntV(r as isize);
-                            vec[1] = FFIValue::IntV(g as isize);
-                            vec[2] = FFIValue::IntV(b as isize);
-                            vec[3] = FFIValue::IntV(a as isize);
+                            vec[0] = FFIValue::IntV((r * 255.0).round() as isize);
+                            vec[1] = FFIValue::IntV((g * 255.0).round() as isize);
+                            vec[2] = FFIValue::IntV((b * 255.0).round() as isize);
+                            vec[3] = FFIValue::IntV((a * 255.0).round() as isize);
 
                             true.into_ffi_val()
                         }
