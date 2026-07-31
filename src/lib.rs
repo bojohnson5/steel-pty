@@ -648,7 +648,7 @@ fn create_native_pty_system(command: String) -> PtyProcess {
     spawn_in_pty(CommandBuilder::new(command))
 }
 
-fn create_native_pty_system_with_cmd(command: String, cwd: String) -> PtyProcess {
+fn create_native_pty_system_with_cwd(command: String, cwd: String) -> PtyProcess {
     let mut cmd = CommandBuilder::new(command);
     cmd.cwd(cwd);
     spawn_in_pty(cmd)
