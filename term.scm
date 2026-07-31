@@ -115,8 +115,10 @@
                      (ffi-vector-ref bg/fg 2))
      base-color]
 
-    ; base-color
-    [else (if fg? base-color-fg base-color)]))
+    ;; Default color. For the background use Color/Reset (the terminal default)
+    ;; rather than the reused base-color object, so a default cell can never
+    ;; inherit the previous cell's background.
+    [else (if fg? base-color-fg Color/Reset)]))
 
 (define (cell-fg-bg->style base-style base-color-fg base-color-bg fg bg theme-base-color-fg reverse?)
   (define bgc (or (attribute->color (term/color-attribute-set! bg bg-attr)
@@ -130,7 +132,7 @@
         (set-style-bg! base-style fgc)
         (set-style-fg! base-style bgc))
       (begin
-        (when base-color-bg (set-style-bg! base-style bgc))
+        (set-style-bg! base-style bgc)
         (set-style-fg! base-style fgc))))
 
 (define (for-each func lst)
