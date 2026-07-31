@@ -43,6 +43,7 @@
                           vte/iter-cell-str-set-str!
                           vte/cursor-x
                           vte/cursor-y
+                          vte/cursor-visible?
                           vte/resize
                           pty-resize!
                           raw-virtual-terminal
@@ -435,7 +436,14 @@
     [else calculated-area]))
 
 (define terminal-cursor-handler
-  (lambda (state _) (if (unbox (Terminal-focused? state)) (Terminal-cursor state) #f)))
+  (lambda (state _)
+    ;; Only show the cursor when the pane is focused AND the emulated terminal
+    ;; actually has its cursor visible (e.g. lazygit while editing a commit
+    ;; message). When the app hides the cursor, don't draw a stray parked one.
+    (if (and (unbox (Terminal-focused? state))
+             (vte/cursor-visible? (Terminal-*vte* state)))
+        (Terminal-cursor state)
+        #f)))
 
 ;; Renders the terminal. The renderer is implemented primarily as a cursor
 ;; over the cells of the terminal, translated from the underlying
@@ -1205,7 +1213,7 @@
               (Color/rgb 0 0 0) (Color/rgb 0 0 0) (box #f)
               (mutable-string) (vte/empty-cell) (vte/empty-cell)
               (box #f) (box #f)
-              terminal-render terminal-event-handler #f
+              terminal-render terminal-event-handler terminal-cursor-handler
               (box #f) (box #f)))
   (set! *command-terminal* term)
 

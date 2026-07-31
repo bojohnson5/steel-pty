@@ -248,6 +248,7 @@ fn create_module() -> FFIModule {
         .register_fn("vte/lines", VirtualTerminal::lines)
         .register_fn("vte/line->string", TermLine::as_str)
         .register_fn("vte/cursor", VirtualTerminal::cursor)
+        .register_fn("vte/cursor-visible?", VirtualTerminal::cursor_visible)
         .register_fn("vte/cursor-x", VirtualTerminal::cursor_x)
         .register_fn("vte/cursor-y", VirtualTerminal::cursor_y)
         .register_fn("vte/line->cells", |line: &mut TermLine| -> Vec<FFIValue> {
@@ -875,6 +876,11 @@ impl VirtualTerminal {
             pos.x.into_ffi_val().unwrap(),
             (pos.y as isize).into_ffi_val().unwrap(),
         ]
+    }
+
+    fn cursor_visible(&self) -> bool {
+        use wezterm_surface::CursorVisibility;
+        self.terminal.cursor_pos().visibility == CursorVisibility::Visible
     }
 
     fn cursor_x(&self) -> usize {

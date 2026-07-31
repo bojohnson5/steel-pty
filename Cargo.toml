@@ -19,5 +19,6 @@ log = "0.4.17"
 anyhow = "*"
 wezterm-term = { git = "https://github.com/mattwparas/wezterm.git", branch = "mwp-public-scroll" }
 config = { git = "https://github.com/mattwparas/wezterm.git", branch = "mwp-public-scroll" }
+wezterm-surface = { git = "https://github.com/mattwparas/wezterm.git", branch = "mwp-public-scroll" }
 parking_lot = "*"
 futures-time = "3.0.0"

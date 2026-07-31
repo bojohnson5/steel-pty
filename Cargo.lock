@@ -3220,6 +3220,7 @@ dependencies = [
  "portable-pty 0.8.1",
  "steel-core",
  "tokio",
+ "wezterm-surface",
  "wezterm-term",
 ]
 
