@@ -195,7 +195,10 @@ fn create_module() -> FFIModule {
 
     module
         .register_fn("create-native-pty-system!", create_native_pty_system)
-        .register_fn("create-native-pty-system-with-cmd!", create_native_pty_system_with_cmd)
+        .register_fn(
+            "create-native-pty-system-with-cwd!",
+            create_native_pty_system_with_cwd,
+        )
         .register_fn("kill-pty-process!", PtyProcess::kill)
         .register_fn("pty-process-send-command", PtyProcess::send_command)
         .register_fn(
@@ -686,7 +689,7 @@ fn spawn_in_pty(cmd: CommandBuilder) -> PtyProcess {
 
         loop {
             match reader.read(&mut read_buffer) {
-                Ok(0) => break,                       // EOF: child exited (fixes q/panic)
+                Ok(0) => break, // EOF: child exited (fixes q/panic)
                 Ok(size) => {
                     carry.extend_from_slice(&read_buffer[..size]);
                     // Decode only the valid UTF-8 prefix; keep any split trailing bytes.
