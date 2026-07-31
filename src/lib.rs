@@ -654,7 +654,17 @@ fn create_native_pty_system_with_cwd(command: String, cwd: String) -> PtyProcess
     spawn_in_pty(cmd)
 }
 
-fn spawn_in_pty(cmd: CommandBuilder) -> PtyProcess {
+fn spawn_in_pty(mut cmd: CommandBuilder) -> PtyProcess {
+    // portable-pty's CommandBuilder does not inherit the parent environment.
+    // Pass Helix's env through so a directly-spawned TUI (lazygit) sees
+    // TERM/COLORTERM/LANG/PATH and detects terminal capabilities the same way
+    // it would when launched from a shell. Without this, selection highlighting
+    // and colors render incorrectly.
+    cmd.env("TERM", "xterm-256color"); // fallback, overridden by the loop if set
+    for (key, value) in std::env::vars() {
+        cmd.env(key, value);
+    }
+
     let pty_system = NativePtySystem::default();
 
     let pair = pty_system
