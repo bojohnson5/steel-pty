@@ -525,6 +525,7 @@
 ;; Measure the diff between these two
 (define on-click-start (mutable-vector 0 0))
 (define on-click-end (mutable-vector 0 0))
+(define *mouse-button-down?* (box #f))
 
 (define (handle-mouse-event state event *vte*)
 
@@ -534,7 +535,7 @@
      (case (event-mouse-kind event)
        ;; Mouse event down - any mouse button
        [(0 1 2)
-
+        (set-box! *mouse-button-down?* #t)
         ;; Update the position to compare against
         (vector-set! on-click-start 0 (event-mouse-col event))
         (vector-set! on-click-start 1 (event-mouse-row event))
@@ -542,42 +543,45 @@
         event-result/consume]
 
        [(3 4 5)
-
+        (set-box! *mouse-button-down?* #f)
         (set-box! (Terminal-dragged? state) #f)
 
         event-result/consume]
 
        [(6 7 8)
-        ;; TODO: Implement mouse smoothing, or at least don't necessarily re-render on _every_ single drag?
-        ;; Maybe move multiple pixels at a time?
-        (define delta-x (- (event-mouse-col event) (mut-vector-ref on-click-start 0)))
-        (define delta-y (- (event-mouse-row event) (mut-vector-ref on-click-start 1)))
-        (define left-min (round (/ (area-width (unbox (Terminal-area state))) 2)))
-        (define x-term (unbox (Terminal-x-term state)))
-        (define y-term (unbox (Terminal-y-term state)))
+        (cond
+          [(not (unbox *mouse-button-down?*)) event-result/consume-without-rerender]
+          [else
+            ;; TODO: Implement mouse smoothing, or at least don't necessarily re-render on _every_ single drag?
+            ;; Maybe move multiple pixels at a time?
+            (define delta-x (- (event-mouse-col event) (mut-vector-ref on-click-start 0)))
+            (define delta-y (- (event-mouse-row event) (mut-vector-ref on-click-start 1)))
+            (define left-min (round (/ (area-width (unbox (Terminal-area state))) 2)))
+            (define x-term (unbox (Terminal-x-term state)))
+            (define y-term (unbox (Terminal-y-term state)))
 
-        ;; Only drag when the delta is large enough to warrant it
-        ;; TODO: This should be a ratio of the overall screen space
-        (if (or (> (abs delta-x) 3) (> (abs delta-y) 3))
+            ;; Only drag when the delta is large enough to warrant it
+            ;; TODO: This should be a ratio of the overall screen space
+            (if (or (> (abs delta-x) 3) (> (abs delta-y) 3))
 
-            (begin
+                (begin
 
-              (vector-set! on-click-start 0 (event-mouse-col event))
-              (vector-set! on-click-start 1 (event-mouse-row event))
+                  (vector-set! on-click-start 0 (event-mouse-col event))
+                  (vector-set! on-click-start 1 (event-mouse-row event))
 
-              (set-box! (Terminal-dragged? state) #t)
+                  (set-box! (Terminal-dragged? state) #t)
 
-              (when x-term
-                (when (< (+ x-term delta-x left-min) global-max-width)
-                  (set-box! (Terminal-x-term state) (max (+ x-term delta-x) (round left-min)))))
-              (when y-term
-                (when (< (+ y-term delta-y (area-height (unbox (Terminal-area state))))
-                         global-max-height)
-                  (set-box! (Terminal-y-term state) (max (+ y-term delta-y) 0))))
+                  (when x-term
+                    (when (< (+ x-term delta-x left-min) global-max-width)
+                      (set-box! (Terminal-x-term state) (max (+ x-term delta-x) (round left-min)))))
+                  (when y-term
+                    (when (< (+ y-term delta-y (area-height (unbox (Terminal-area state))))
+                            global-max-height)
+                      (set-box! (Terminal-y-term state) (max (+ y-term delta-y) 0))))
 
-              event-result/consume)
+                  event-result/consume)
 
-            event-result/consume-without-rerender)]
+                event-result/consume-without-rerender)])]
        ; [(3) (error "todo")]
        ; [(4) (error "todo")]
        ; [(5) (error "todo")]
