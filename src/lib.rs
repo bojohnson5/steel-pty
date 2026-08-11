@@ -142,7 +142,7 @@ impl PtyProcess {
             }
 
             let next = guard.recv();
-            let timeout = futures_time::task::sleep(futures_time::time::Duration::from_millis(2));
+            let timeout = futures_time::task::sleep(futures_time::time::Duration::from_millis(12));
 
             futures::pin_mut!(next);
 
@@ -428,6 +428,9 @@ fn create_module() -> FFIModule {
 
                         if let Some(cell) = last_cell {
                             // term.last_cell = last_cell.cloned();
+                            if is_invisible(cell) {
+                                continue;
+                            }
                             term.last_reverse = cell.attrs().reverse();
                             update_cell(cell, mut_str, bg, fg);
 
@@ -448,6 +451,9 @@ fn create_module() -> FFIModule {
 
                         if let Some(cell) = last_cell {
                             // term.last_cell = last_cell.cloned();
+                            if is_invisible(cell) {
+                                continue;
+                            }
                             term.last_reverse = cell.attrs().reverse();
                             update_cell(cell, mut_str, bg, fg);
 
@@ -626,6 +632,20 @@ fn create_module() -> FFIModule {
         });
 
     module
+}
+
+/// True for cells the renderer would paint as nothing: a blank glyph with
+/// default colors and no reverse video. `buffer/clear` + `block/render` have
+/// already filled the popup area before the cell loop runs, so emitting these
+/// is pure overhead. The predicate deliberately mirrors exactly the attributes
+/// `terminal-render` consumes (glyph, fg, bg, reverse) — bold/underline/italic
+/// are ignored there, so ignoring them here stays consistent.
+fn is_invisible(cell: &Cell) -> bool {
+    let attrs = cell.attrs();
+    matches!(cell.str(), " " | "")
+        && !attrs.reverse()
+        && matches!(attrs.foreground(), ColorAttribute::Default)
+        && matches!(attrs.background(), ColorAttribute::Default)
 }
 
 fn update_cell(cell: &Cell, mut mut_str: RMut<'_, RString>, bg: FFIArg, fg: FFIArg) {

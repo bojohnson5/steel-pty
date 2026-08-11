@@ -938,14 +938,22 @@
   (define *vte* (Terminal-*vte* terminal))
   (define *pty-process* (Terminal-*pty-process* terminal))
 
-  (vte/resize *vte* rows cols)
+  ;; This is called from the render path (via alternative-calculate-area), so it
+  ;; runs on EVERY frame. Unguarded, that means a TIOCSWINSZ ioctl plus a full
+  ;; wezterm_term::Terminal::resize (line reflow) per frame. Only touch the vte
+  ;; and the pty when the geometry actually changed.
+  (unless (and (equal? cols (unbox (Terminal-viewport-width terminal)))
+               (equal? rows (unbox (Terminal-viewport-height terminal))))
 
-  (when *pty-process*
-    (pty-resize! *pty-process* rows cols))
+    (vte/resize *vte* rows cols)
 
-  (set-box! (Terminal-viewport-width terminal) cols)
-  ; (set-box! (Terminal-viewport-height terminal) rows)
-  )
+    (when *pty-process*
+      (pty-resize! *pty-process* rows cols))
+
+    (set-box! (Terminal-viewport-width terminal) cols)
+    ;; NB: this was previously commented out, which left viewport-height pinned
+    ;; at its initial value forever. The guard above needs it to be accurate.
+    (set-box! (Terminal-viewport-height terminal) rows)))
 
 (define (term-resize-impl rows cols)
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
