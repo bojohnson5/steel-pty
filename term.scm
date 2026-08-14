@@ -658,6 +658,12 @@
               (pty-process-send-command *pty-process* "\x1b;")
               event-result/consume))]
 
+       [(and char (equal? (key-event-modifier event) key-modifier-ctrl))
+            (pty-process-send-command-char
+              *pty-process*
+                (integer->char (bitwise-and (char->integer char) #x1f)))
+            event-result/consume]
+
        [(equal? char #\c)
 
         (if (equal? (key-event-modifier event) key-modifier-ctrl)
