@@ -634,6 +634,12 @@
 
      (cond
 
+       [(paste-event? event)
+        (let ([pasted (paste-event-string event)])
+          (when (string? pasted)
+            (pty-process-send-command *pty-process* pasted)))
+          event-result/consume]
+
        ;; TODO: Add custom key bindings for this
        [(and char (equal? (event->key-event event) ctrl-l))
         (pty-process-send-command *pty-process* "clear\n")
